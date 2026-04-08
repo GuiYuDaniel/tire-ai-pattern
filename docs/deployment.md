@@ -63,11 +63,11 @@ python scripts/pieces_2_standard_input.py --task_id <TASK_ID>
 ### 运行后处理
 
 ```bash
-python scripts/postprocessor.py --task-id <TASK_ID>
+python scripts/postprocessor.py --task_id <TASK_ID>
 ```
 
 参数说明：
-- `--task-id`: 任务 ID
+- `--task_id`: 任务 ID
 - `--user-conf`: （可选）用户配置文件路径
 
 ## 输出位置

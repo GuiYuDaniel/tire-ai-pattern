@@ -300,7 +300,7 @@ pytest tests/unittests/services/test_preprocessor.py -v
 python scripts/pieces_2_standard_input.py --task_id <TASK_ID>
 
 # 5. 运行后处理
-python scripts/postprocessor.py --task-id <TASK_ID>
+python scripts/postprocessor.py --task_id <TASK_ID>
 ```
 
 ## 架构设计

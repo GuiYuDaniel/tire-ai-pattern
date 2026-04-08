@@ -23,14 +23,14 @@ Conf 处理 → 小图筛选 → 小图打分 → 纵图拼接 → 横图拼接 
 
 ```bash
 source .setup_giti_speckit_py12.sh
-python scripts/postprocessor.py --task-id <task_id> [--config <config.json>] [--log <info|debug>]
+python scripts/postprocessor.py --task_id <task_id> [--config <config.json>] [--log <info|debug>]
 ```
 
 #### 参数说明
 
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `--task-id` | str | 是 | - | 任务唯一标识 |
+| `--task_id` | str | 是 | - | 任务唯一标识 |
 | `--config` | str | 否 | None | 用户配置文件路径（JSON 格式） |
 | `--log` | str | 否 | debug | 日志级别：info 或 debug |
 
@@ -39,17 +39,17 @@ python scripts/postprocessor.py --task-id <task_id> [--config <config.json>] [--
 **基本用法**
 ```bash
 source .setup_giti_speckit_py12.sh
-python scripts/postprocessor.py --task-id 1778457600
+python scripts/postprocessor.py --task_id 1778457600
 ```
 
 **带用户配置**
 ```bash
-python scripts/postprocessor.py --task-id 1778457600 --config /path/to/config.json
+python scripts/postprocessor.py --task_id 1778457600 --config /path/to/config.json
 ```
 
 **指定日志级别**
 ```bash
-python scripts/postprocessor.py --task-id 1778457600 --log info
+python scripts/postprocessor.py --task_id 1778457600 --log info
 ```
 
 #### 输出说明
@@ -136,7 +136,7 @@ source .setup_giti_speckit_py12.sh
 python scripts/pieces_2_standard_input.py --task_id 1778457600
 
 # 步骤 3: 运行后处理
-python scripts/postprocessor.py --task-id 1778457600
+python scripts/postprocessor.py --task_id 1778457600
 
 # 步骤 4: 查看结果
 ls .results/tasks/1778457600/combine/
@@ -160,7 +160,7 @@ ls .results/tasks/1778457600/combine/
 运行：
 
 ```bash
-python scripts/postprocessor.py --task-id 1778457600 --config my_config.json
+python scripts/postprocessor.py --task_id 1778457600 --config my_config.json
 ```
 
 ### 场景 3：集成到 Python 代码

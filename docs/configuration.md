@@ -155,7 +155,7 @@ success, result = postprocessor(
 命令行运行：
 
 ```bash
-python scripts/postprocessor.py --task-id 1778457600 --config my_config.json
+python scripts/postprocessor.py --task_id 1778457600 --config my_config.json
 ```
 
 ---

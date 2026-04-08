@@ -8,12 +8,12 @@
 
 使用方法:
     source .setup_giti_speckit_py12.sh
-    python scripts/postprocessor.py --task-id <task_id> [--config <config.json>] [--log <info|debug>]
+    python scripts/postprocessor.py --task_id <task_id> [--config <config.json>] [--log <info|debug>]
 
 示例:
-    python scripts/postprocessor.py --task-id test_rule6_1
-    python scripts/postprocessor.py --task-id test_rule6_1 --config config.json
-    python scripts/postprocessor.py --task-id test_rule6_1 --log info
+    python scripts/postprocessor.py --task_id test_rule6_1
+    python scripts/postprocessor.py --task_id test_rule6_1 --config config.json
+    python scripts/postprocessor.py --task_id test_rule6_1 --log info
 """
 
 import argparse
@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
         description="后处理独立脚本 - 执行完整的后处理流程"
     )
     parser.add_argument(
-        "--task-id",
+        "--task_id",
         type=str,
         required=True,
         help="任务唯一标识 (如：9f8d7b6a-5e4d-3c2b-1a09-876543210fed)"
