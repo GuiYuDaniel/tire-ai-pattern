@@ -2,7 +2,7 @@
 """
 海陆比算法单元测试（新架构 dev2）
 
-测试目标：src.core.scoring.land_sea_ratio
+测试目标：src.core.detection.land_sea_ratio
 API 注意：compute_land_sea_ratio() 只接收图像和 is_debug，返回 (ratio_percent, vis_name, vis_image)。
 评分逻辑已移至规则层 Rule13Executor，本文件不测试评分。
 
@@ -70,7 +70,7 @@ class TestComputeLandSeaRatioApi(unittest.TestCase):
     """公开 API 边界和输入校验测试。"""
 
     def _run(self, image, **kwargs):
-        from src.core.scoring.land_sea_ratio import compute_land_sea_ratio
+        from src.core.detection.land_sea_ratio import compute_land_sea_ratio
         return compute_land_sea_ratio(image, **kwargs)
 
     def test_none_image_raises(self):
@@ -128,56 +128,56 @@ class TestBlackGrayArea(unittest.TestCase):
     """_compute_black_area 和 _compute_gray_area 内部函数白盒测试。"""
 
     def test_black_area_all_black(self):
-        from src.core.scoring.land_sea_ratio import _compute_black_area
+        from src.core.detection.land_sea_ratio import _compute_black_area
         gray = np.full((100, 100), 30, dtype=np.uint8)
         area = _compute_black_area(gray)
         expected_area = 10000
         self.assertEqual(area, expected_area)
 
     def test_black_area_no_black(self):
-        from src.core.scoring.land_sea_ratio import _compute_black_area
+        from src.core.detection.land_sea_ratio import _compute_black_area
         gray = np.full((100, 100), 200, dtype=np.uint8)
         area = _compute_black_area(gray)
         expected_area = 0
         self.assertEqual(area, expected_area)
 
     def test_black_area_boundary_50(self):
-        from src.core.scoring.land_sea_ratio import _compute_black_area
+        from src.core.detection.land_sea_ratio import _compute_black_area
         gray = np.full((100, 100), 50, dtype=np.uint8)
         area = _compute_black_area(gray)
         expected_area = 10000
         self.assertEqual(area, expected_area)
 
     def test_black_area_boundary_51(self):
-        from src.core.scoring.land_sea_ratio import _compute_black_area
+        from src.core.detection.land_sea_ratio import _compute_black_area
         gray = np.full((100, 100), 51, dtype=np.uint8)
         area = _compute_black_area(gray)
         expected_area = 0
         self.assertEqual(area, expected_area)
 
     def test_gray_area_all_gray(self):
-        from src.core.scoring.land_sea_ratio import _compute_gray_area
+        from src.core.detection.land_sea_ratio import _compute_gray_area
         gray = np.full((100, 100), 100, dtype=np.uint8)
         area = _compute_gray_area(gray)
         expected_area = 10000
         self.assertEqual(area, expected_area)
 
     def test_gray_area_no_gray(self):
-        from src.core.scoring.land_sea_ratio import _compute_gray_area
+        from src.core.detection.land_sea_ratio import _compute_gray_area
         gray = np.full((100, 100), 30, dtype=np.uint8)
         area = _compute_gray_area(gray)
         expected_area = 0
         self.assertEqual(area, expected_area)
 
     def test_gray_area_boundary_200(self):
-        from src.core.scoring.land_sea_ratio import _compute_gray_area
+        from src.core.detection.land_sea_ratio import _compute_gray_area
         gray = np.full((100, 100), 200, dtype=np.uint8)
         area = _compute_gray_area(gray)
         expected_area = 10000
         self.assertEqual(area, expected_area)
 
     def test_gray_area_boundary_201(self):
-        from src.core.scoring.land_sea_ratio import _compute_gray_area
+        from src.core.detection.land_sea_ratio import _compute_gray_area
         gray = np.full((100, 100), 201, dtype=np.uint8)
         area = _compute_gray_area(gray)
         expected_area = 0
@@ -193,8 +193,8 @@ class TestRuntimeErrors(unittest.TestCase):
         from src.common.exceptions import RuntimeProcessError
         from unittest.mock import patch
         image = _make_ratio_image(100, 100, 0.3, 0.0)
-        with patch("src.core.scoring.land_sea_ratio.cv2.cvtColor", side_effect=RuntimeError("mock")):
-            from src.core.scoring.land_sea_ratio import compute_land_sea_ratio
+        with patch("src.core.detection.land_sea_ratio.cv2.cvtColor", side_effect=RuntimeError("mock")):
+            from src.core.detection.land_sea_ratio import compute_land_sea_ratio
             with self.assertRaises(RuntimeProcessError):
                 compute_land_sea_ratio(image)
 
@@ -203,8 +203,8 @@ class TestRuntimeErrors(unittest.TestCase):
         from src.common.exceptions import RuntimeProcessError
         from unittest.mock import patch
         image = _make_ratio_image(100, 100, 0.3, 0.0)
-        with patch("src.core.scoring.land_sea_ratio._draw_debug_image", side_effect=RuntimeError("mock")):
-            from src.core.scoring.land_sea_ratio import compute_land_sea_ratio
+        with patch("src.core.detection.land_sea_ratio._draw_debug_image", side_effect=RuntimeError("mock")):
+            from src.core.detection.land_sea_ratio import compute_land_sea_ratio
             with self.assertRaises(RuntimeProcessError):
                 compute_land_sea_ratio(image, is_debug=True)
 
@@ -214,7 +214,7 @@ class TestDebugVisualization(unittest.TestCase):
     """debug 可视化输出测试。"""
 
     def _run(self, image, **kwargs):
-        from src.core.scoring.land_sea_ratio import compute_land_sea_ratio
+        from src.core.detection.land_sea_ratio import compute_land_sea_ratio
         return compute_land_sea_ratio(image, **kwargs)
 
     def test_no_debug_returns_none_and_empty_string(self):
@@ -266,7 +266,7 @@ class TestRealImages(unittest.TestCase):
     }
 
     def _run(self, image, **kwargs):
-        from src.core.scoring.land_sea_ratio import compute_land_sea_ratio
+        from src.core.detection.land_sea_ratio import compute_land_sea_ratio
         return compute_land_sea_ratio(image, **kwargs)
 
     def test_real_image_ratios_match_old_algorithm(self):
