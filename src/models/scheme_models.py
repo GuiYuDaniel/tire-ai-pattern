@@ -144,20 +144,36 @@ class Symmetry1(StitchingTemplate):
 #     ]
 
 class Continuity0(StitchingTemplate):
-    """拼接模板：continuity_0 - RIB2-RIB3连续，边缘独立"""
+    """无操作模版，不修改对称性方案"""
 
     name: StitchingSchemeName = StitchingSchemeName.CONTINUITY_0
+    description: str = "无操作模版，不修改对称性方案"
+    rib_number: int = 5
+    mode: str = "continuity"
+    matching_rule_names: Tuple[str, ...] = tuple()
+    rib_template_list: List[RibTemplate] = [
+        RibTemplate(source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.NONE,), rib_name="rib1"),
+        RibTemplate(source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.NONE,), rib_name="rib2"),
+        RibTemplate(source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.NONE,), rib_name="rib3"),
+        RibTemplate(source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.NONE,), rib_name="rib4"),
+        RibTemplate(source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.NONE,), rib_name="rib5"),
+    ]
+
+
+class Continuity1(StitchingTemplate):
+    """拼接模板：continuity_0 - RIB2-RIB3连续，边缘独立"""
+
+    name: StitchingSchemeName = StitchingSchemeName.CONTINUITY_1
     description: str = "RIB2-RIB3连续，边缘独立"
     rib_number: int = 5
     mode: str = "continuity"
     matching_rule_names: Tuple[str, ...] = tuple()
     rib_template_list: List[RibTemplate] = [
-        RibTemplate(source_type=SourceTypeEnum.ORIGINAL, operation_template=(RibOperation.NONE,), rib_name="rib1"),
-        RibTemplate(source_type=SourceTypeEnum.ORIGINAL, operation_template=(RibOperation.RESIZE_HORIZONTAL_2X, RibOperation.LEFT), rib_name="rib2"),
-        RibTemplate(
-            source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.RESIZE_HORIZONTAL_2X, RibOperation.RIGHT), rib_name="rib3",   inherit_from="rib2",),
-        RibTemplate(source_type=SourceTypeEnum.ORIGINAL, operation_template=(RibOperation.NONE,), rib_name="rib4"),
-        RibTemplate(source_type=SourceTypeEnum.ORIGINAL, operation_template=(RibOperation.NONE,), rib_name="rib5"),
+        RibTemplate(source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.NONE,), inherit_from="rib1", rib_name="rib1"),
+        RibTemplate(source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.RESIZE_HORIZONTAL_2X, RibOperation.LEFT), inherit_from="rib2", rib_name="rib2"),
+        RibTemplate(source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.RESIZE_HORIZONTAL_2X, RibOperation.RIGHT), inherit_from="rib2", rib_name="rib3"),
+        RibTemplate(source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.NONE,), inherit_from="rib4", rib_name="rib4"),
+        RibTemplate(source_type=SourceTypeEnum.INHERIT, operation_template=(RibOperation.NONE,), inherit_from="rib5", rib_name="rib5"),
     ]
 
 
