@@ -6,9 +6,11 @@ feature 重新评分的场景。
 """
 
 from __future__ import annotations
+from typing import Dict, List, Tuple, Optional
 
 from src.common.exceptions import InputDataError
-from src.models.image_models import BigImage
+from src.models.enums import RuleTypeEnum
+from src.models.image_models import BigImage, SmallImage, ImageLineage
 from src.models.rule_models import BaseRuleConfig
 from src.nodes.base import GEOMETRY_SCORER_CONFIGS, RuleRunner, recalculate_current_score, select_node_configs
 
@@ -87,3 +89,321 @@ def score_geometry(
 
     recalculate_current_score(evaluation)
     return big_image
+
+
+def calculate_geometric_scores(
+    big_image: BigImage,
+    small_images: List[SmallImage],
+    lineage: ImageLineage,
+    rules_config: List[BaseRuleConfig],
+) -> dict:
+    """
+    几何合理性业务评分主函数（基于已有评分计算）
+
+    只从 evaluation.rules 中提取 score 进行计算，不处理 base64 图片数据
+
+    Args:
+        big_image: 待评分的大图对象，包含 evaluation 字段
+        small_images: 小图列表，包含各小图的 evaluation 字段
+        lineage: 血缘信息，用于验证拼接方案
+        rules_config: 规则配置列表，定义各规则的 max_score
+
+    Returns:
+        dict: 包含各项得分和总分的结果字典
+        {
+            'individual_scores': Dict[str, int],  # 各规则得分
+            'total_score': int,                   # 归一化总分（0-100）
+            'max_possible_score': int,           # 最大可能得分
+            'effective_rule_count': int,         # 有效规则数量
+            'rule_details': List[Dict],          # 规则详情列表
+        }
+
+    Raises:
+        InputDataError: 当 big_image 或 evaluation 缺失时抛出
+    """
+
+    if big_image is None:
+        raise InputDataError(NODE_NAME, "big_image", "big_image is required")
+
+    if big_image.evaluation is None:
+        raise InputDataError(
+            NODE_NAME,
+            "big_image.evaluation",
+            "big_image.evaluation is required",
+        )
+
+    # 步骤1: 规则分类（基于现有 GEOMETRY_SCORER_CONFIGS）
+    big_image_rules, small_image_rules, default_rules = _classify_rules(rules_config)
+
+    # 步骤2: 从血缘中筛选参与计算的小图
+    used_regions = _extract_used_small_image_regions(lineage)
+    effective_small_images = [
+        img for img in small_images
+        if img.biz.region and img.biz.region.value in used_regions
+    ]
+
+    # 步骤3: 大图规则得分（直接从 evaluation 提取）
+    big_image_scores = _extract_big_image_scores(big_image, big_image_rules)
+
+    # 步骤4: 小图规则得分（融合打分，仅使用有效小图）
+    small_image_scores = {}
+    for rule in small_image_rules:
+        small_image_scores[rule.name] = _calculate_small_image_rule_score(
+            effective_small_images, rule.name, rule.max_score
+        )
+
+    # 步骤5: 默认规则得分
+    default_scores = _get_default_scores(default_rules)
+
+    # 步骤6: 归一化计算总分
+    all_scores = {**big_image_scores, **small_image_scores, **default_scores}
+    total_score, max_possible_score, effective_rule_count = _calculate_normalized_score(
+        all_scores, rules_config
+    )
+
+    # 步骤7: 组装结果
+    return _build_result(
+        all_scores, total_score, max_possible_score, effective_rule_count, rules_config
+    )
+
+
+def _extract_used_small_image_regions(lineage: ImageLineage) -> set[str]:
+    """
+    从血缘信息中提取实际参与大图拼接的小图区域标识
+
+    Args:
+        lineage: 血缘信息对象，包含拼接方案详情
+
+    Returns:
+        set[str]: 参与拼接的区域标识集合（如 {'side', 'center'}）
+
+    Note:
+        从 stitching_scheme.ribs_scheme_implementation 中提取 rib_source 字段
+    """
+    used_regions = set()
+
+    if lineage and lineage.stitching_scheme:
+        for rib_impl in lineage.stitching_scheme.ribs_scheme_implementation:
+            if rib_impl.rib_source:
+                used_regions.add(rib_impl.rib_source)
+
+    return used_regions
+
+
+def _classify_rules(
+    rules_config: List[BaseRuleConfig],
+) -> Tuple[List[BaseRuleConfig], List[BaseRuleConfig], List[BaseRuleConfig]]:
+    """
+    规则分类：区分大图规则、小图规则和默认规则
+
+    直接使用配置对象的 rule_type 属性进行分类。
+
+    Returns:
+        Tuple: (大图规则列表, 小图规则列表, 默认规则列表)
+    """
+    big_image_rules = []
+    small_image_rules = []
+    default_rules = []
+
+    for config in rules_config:
+        rule_type = config.rule_type
+        if rule_type == RuleTypeEnum.SMALL_IMAGE:
+            small_image_rules.append(config)
+        elif rule_type == RuleTypeEnum.DEFAULT:
+            default_rules.append(config)
+        elif rule_type == RuleTypeEnum.BIG_IMAGE:
+            big_image_rules.append(config)
+
+    return big_image_rules, small_image_rules, default_rules
+
+
+def _extract_big_image_scores(
+    big_image: BigImage,
+    big_image_rules: List[BaseRuleConfig],
+) -> Dict[str, int]:
+    """
+    从大图评估结果中直接提取规则得分
+
+    只从 evaluation.rules 中提取 score，不处理图片数据
+
+    Returns:
+        Dict[str, int]: 各规则得分字典
+    """
+    scores = {}
+
+    evaluation = big_image.evaluation
+    if evaluation is None:
+        return scores
+
+    for config in big_image_rules:
+        rule_eval = evaluation.get_rule(config.name)
+        if rule_eval is not None and rule_eval.score is not None:
+            scores[config.name] = rule_eval.score.score
+        else:
+            scores[config.name] = 0
+
+    return scores
+
+
+def _calculate_small_image_rule_score(
+    small_images: List[SmallImage],
+    rule_name: str,
+    max_score: int,
+) -> int:
+    """
+    小图规则融合打分算法
+
+    算法原理：最终得分 = 满足比例 × 平均得分
+    只从 evaluation.rules 中提取 score，不处理图片数据
+
+    Args:
+        small_images: 小图列表
+        rule_name: 规则名称
+        max_score: 规则最大得分
+
+    Returns:
+        int: 融合后的规则得分（0-max_score）
+    """
+    if not small_images:
+        return 0
+
+    scores = []
+    for small_image in small_images:
+        if small_image.evaluation is not None:
+            rule_eval = small_image.evaluation.get_rule(rule_name)
+            if rule_eval is not None and rule_eval.score is not None:
+                scores.append(rule_eval.score.score)
+
+    if not scores:
+        return 0
+
+    satisfied_count = sum(1 for s in scores if s > 0)
+    satisfy_ratio = satisfied_count / len(scores)
+
+    avg_score = sum(scores) / len(scores)
+
+    final_score = round(satisfy_ratio * avg_score)
+
+    return max(0, min(final_score, max_score))
+
+
+def _get_default_scores(default_rules: List[BaseRuleConfig]) -> Dict[str, int]:
+    """
+    获取默认规则得分
+
+    Returns:
+        Dict[str, int]: 默认规则得分字典
+    """
+    scores = {}
+    for config in default_rules:
+        scores[config.name] = config.max_score
+    return scores
+
+
+def _calculate_normalized_score(
+    individual_scores: Dict[str, int],
+    rules_config: List[BaseRuleConfig],
+) -> Tuple[int, int, int]:
+    """
+    归一化算法
+
+    算法原理：总分 = (Σ实际得分 / Σ最大可能得分) × 100
+
+    Args:
+        individual_scores: 各规则的实际得分
+        rules_config: 规则配置列表
+
+    Returns:
+        Tuple[int, int, int]: (归一化总分, 最大可能得分, 有效规则数量)
+    """
+    actual_total = 0
+    max_total = 0
+    effective_count = 0
+
+    for config in rules_config:
+        rule_name = config.name
+        if config.max_score > 0 and rule_name in individual_scores:
+            actual_total += individual_scores[rule_name]
+            max_total += config.max_score
+            effective_count += 1
+
+    if max_total == 0:
+        return 0, 0, effective_count
+
+    normalized_score = round((actual_total / max_total) * 100)
+    return normalized_score, max_total, effective_count
+
+
+def _build_result(
+    individual_scores: Dict[str, int],
+    total_score: int,
+    max_possible_score: int,
+    effective_rule_count: int,
+    rules_config: List[BaseRuleConfig],
+) -> dict:
+    """
+    组装最终结果字典
+
+    Returns:
+        dict: 符合需求文档结构的结果字典
+    """
+    rule_details = []
+    rule_name_to_config = {config.name: config for config in rules_config}
+
+    for rule_name, score in individual_scores.items():
+        config = rule_name_to_config.get(rule_name)
+        rule_type = _get_rule_type(rule_name, rules_config)
+
+        rule_details.append({
+            'name': rule_name,
+            'description': config.description if config else '',
+            'score': score,
+            'max_score': config.max_score if config else 0,
+            'is_applied': score > 0,
+            'rule_type': rule_type,
+        })
+
+    return {
+        'individual_scores': individual_scores,
+        'total_score': total_score,
+        'max_possible_score': max_possible_score,
+        'effective_rule_count': effective_rule_count,
+        'rule_details': rule_details,
+    }
+
+
+def _get_rule_type(rule_name: str, rules_config: List[BaseRuleConfig]) -> str:
+    """
+    获取规则类型
+
+    直接从配置对象的 rule_type 属性获取。
+
+    Args:
+        rule_name: 规则名称
+        rules_config: 规则配置列表（用于查找对应的配置实例）
+
+    Returns:
+        str: 'big_image' | 'small_image' | 'default'
+    """
+    # 查找对应的配置实例
+    for config in rules_config:
+        if config.name.lower() == rule_name.lower():
+            return config.rule_type
+
+    # 未找到配置实例，默认返回大图规则类型
+    return RuleTypeEnum.BIG_IMAGE
+
+
+def _get_rule_type_from_config(config: BaseRuleConfig) -> str:
+    """
+    统一获取规则类型
+
+    直接从配置对象的 rule_type 属性获取。
+
+    Args:
+        config: 规则配置实例
+
+    Returns:
+        str: 'big_image' | 'small_image' | 'default'
+    """
+    return config.rule_type
