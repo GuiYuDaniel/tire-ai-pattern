@@ -21,7 +21,7 @@ from typing import Optional, List, Tuple, Union
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 from .enums import RegionEnum, SourceTypeEnum, StitchingSchemeName, RibOperation
-from .rule_models import Rule1Config, Rule2Config
+from .rule_models import Rule1Config, Rule2Config, Rule3Config
 from .template_registry import register_stitching_template
 
 
@@ -125,6 +125,7 @@ class Symmetry1(StitchingTemplate):
     ]
 
 
+@register_stitching_template
 class Symmetry2(StitchingTemplate):
     """拼接模板：symmetry_2 - 5个RIB，左右对称"""
 
@@ -132,10 +133,11 @@ class Symmetry2(StitchingTemplate):
     description: str = "5个RIB，左右对称"
     rib_number: int = 5
     mode: str = "symmetry"
+    matching_rule_names: Tuple[str, ...] = (Rule3Config().name,)
     rib_template_list: List[RibTemplate] = [
         RibTemplate(rib_name="rib1", operation_template=(RibOperation.NONE,), region=RegionEnum.SIDE),
         RibTemplate(rib_name="rib2", operation_template=(RibOperation.NONE,), region=RegionEnum.CENTER),
-        RibTemplate(rib_name="rib3", operation_template=(RibOperation.NONE,), region=RegionEnum.CENTER),
+        RibTemplate(rib_name="rib3", operation_template=(RibOperation.LEFT_FLIP_LR,), region=RegionEnum.CENTER),
         RibTemplate(rib_name="rib4", operation_template=(RibOperation.FLIP_LR,), region=RegionEnum.CENTER,
                     source_type=SourceTypeEnum.INHERIT, inherit_from="rib2"),
         RibTemplate(rib_name="rib5", operation_template=(RibOperation.FLIP_LR,), region=RegionEnum.SIDE,
@@ -143,6 +145,7 @@ class Symmetry2(StitchingTemplate):
     ]
 
 
+@register_stitching_template
 class Symmetry4(StitchingTemplate):
     """拼接模板：symmetry_4 - 4个RIB，无对称"""
 
@@ -150,6 +153,7 @@ class Symmetry4(StitchingTemplate):
     description: str = "4个RIB，无对称"
     rib_number: int = 4
     mode: str = "symmetry"
+    matching_rule_names: Tuple[str, ...] = (Rule1Config().name,)
     rib_template_list: List[RibTemplate] = [
         RibTemplate(rib_name="rib1", operation_template=(RibOperation.NONE,), region=RegionEnum.SIDE),
         RibTemplate(rib_name="rib2", operation_template=(RibOperation.NONE,), region=RegionEnum.CENTER),
@@ -158,6 +162,7 @@ class Symmetry4(StitchingTemplate):
     ]
 
 
+@register_stitching_template
 class Symmetry5(StitchingTemplate):
     """拼接模板：symmetry_5 - 4个RIB，中心对称"""
 
@@ -165,6 +170,7 @@ class Symmetry5(StitchingTemplate):
     description: str = "4个RIB，中心对称"
     rib_number: int = 4
     mode: str = "symmetry"
+    matching_rule_names: Tuple[str, ...] = (Rule2Config().name,)
     rib_template_list: List[RibTemplate] = [
         RibTemplate(rib_name="rib1", operation_template=(RibOperation.NONE,), region=RegionEnum.SIDE),
         RibTemplate(rib_name="rib2", operation_template=(RibOperation.NONE,), region=RegionEnum.CENTER),
@@ -175,6 +181,7 @@ class Symmetry5(StitchingTemplate):
     ]
 
 
+@register_stitching_template
 class Symmetry6(StitchingTemplate):
     """拼接模板：symmetry_6 - 4个RIB，左右对称"""
 
@@ -182,6 +189,7 @@ class Symmetry6(StitchingTemplate):
     description: str = "4个RIB，左右对称"
     rib_number: int = 4
     mode: str = "symmetry"
+    matching_rule_names: Tuple[str, ...] = (Rule3Config().name,)
     rib_template_list: List[RibTemplate] = [
         RibTemplate(rib_name="rib1", operation_template=(RibOperation.NONE,), region=RegionEnum.SIDE),
         RibTemplate(rib_name="rib2", operation_template=(RibOperation.NONE,), region=RegionEnum.CENTER),
