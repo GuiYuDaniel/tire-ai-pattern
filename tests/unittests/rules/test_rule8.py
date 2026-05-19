@@ -9,6 +9,7 @@ algorithm output into Rule8Feature, and computes score from config + feature onl
 
 from __future__ import annotations
 
+from pathlib import Path
 import unittest
 from unittest import mock
 
@@ -25,7 +26,10 @@ from src.models.image_models import ImageBiz, ImageMeta, BigImage
 from src.models.rule_models import Rule8Config, Rule8Feature, Rule8Score
 from src.rules.executors.rule8 import Rule8Executor
 from src.rules.registry import get_rule_executor
-from src.utils.image_utils import ndarray_to_base64
+from src.utils.image_utils import load_image_to_base64, ndarray_to_base64
+
+
+_DATASET_GROOVE = Path("tests/datasets/test_groove_intersection")
 
 
 def _make_big_image(
@@ -46,6 +50,26 @@ def _make_big_image(
             mode=ImageModeEnum.RGB,
             format=ImageFormatEnum.PNG,
             size=0,
+        ),
+        biz=ImageBiz(level=LevelEnum.BIG, region=region),
+    )
+
+
+def _make_big_image_from_file(
+    image_path: Path,
+    region: RegionEnum,
+    width: int,
+    height: int,
+) -> BigImage:
+    return BigImage(
+        image_base64=load_image_to_base64(image_path),
+        meta=ImageMeta(
+            width=width,
+            height=height,
+            channels=3,
+            mode=ImageModeEnum.RGB,
+            format=ImageFormatEnum.PNG,
+            size=image_path.stat().st_size,
         ),
         biz=ImageBiz(level=LevelEnum.BIG, region=region),
     )
@@ -139,6 +163,38 @@ class TestRule8ExecFeature(unittest.TestCase):
         rst = kwargs["groove_width_px"]
         expected = 1
         self.assertEqual(rst, expected)
+
+    def test_exec_feature_integration_calls_real_algorithm_with_center_image(self):
+        image_path = _DATASET_GROOVE / "center_inf" / "0.png"
+        image = _make_big_image_from_file(
+            image_path,
+            region=RegionEnum.CENTER,
+            width=80,
+            height=80,
+        )
+        config = _make_config(groove_width_center=25.0)
+        executor = Rule8Executor()
+
+        rst = executor.exec_feature(image, config)
+
+        self.assertIsInstance(rst, Rule8Feature)
+        self.assertEqual(rst.num_transverse_grooves, 2)
+
+    def test_exec_feature_integration_calls_real_algorithm_with_side_image(self):
+        image_path = _DATASET_GROOVE / "side_inf" / "0.png"
+        image = _make_big_image_from_file(
+            image_path,
+            region=RegionEnum.SIDE,
+            width=80,
+            height=80,
+        )
+        config = _make_config(groove_width_side=13.0)
+        executor = Rule8Executor()
+
+        rst = executor.exec_feature(image, config)
+
+        self.assertIsInstance(rst, Rule8Feature)
+        self.assertEqual(rst.num_transverse_grooves, 2)
 
 
 class TestRule8ExecScore(unittest.TestCase):
