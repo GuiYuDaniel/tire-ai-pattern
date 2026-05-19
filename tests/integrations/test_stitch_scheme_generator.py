@@ -42,10 +42,8 @@ from src.models.scheme_models import (
     Symmetry1,
 )
 from src.models.template_registry import get_stitching_templates
-from src.nodes.base import STITCH_SCHEME_GENERATOR_CONFIGS
 from src.nodes.stitch_scheme_generator import (
     _TemplateCombination,
-    _enabled_rule_names,
     _filter_templates,
     _instantiate_stitching_scheme,
     _small_image_content_hash,
