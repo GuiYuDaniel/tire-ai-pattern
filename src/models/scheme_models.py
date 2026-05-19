@@ -21,6 +21,7 @@ from typing import Optional, List, Tuple, Union
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 from .enums import RegionEnum, SourceTypeEnum, StitchingSchemeName, RibOperation
+from .rule_models import Rule1Config, Rule2Config
 from .template_registry import register_stitching_template
 
 
@@ -94,7 +95,7 @@ class Symmetry0(StitchingTemplate):
     description: str = "花纹RIB无对称原则"
     rib_number: int = 5
     mode: str = "symmetry"
-    matching_rule_names: Tuple[str, ...] = ("rule1",)
+    matching_rule_names: Tuple[str, ...] = (Rule1Config().name,)
     rib_template_list: List[RibTemplate] = [
         RibTemplate(region=RegionEnum.SIDE, operation_template=(RibOperation.NONE,), rib_name="rib1"),
         RibTemplate(region=RegionEnum.CENTER, operation_template=(RibOperation.NONE,), rib_name="rib2"),
@@ -112,7 +113,7 @@ class Symmetry1(StitchingTemplate):
     description: str = "花纹RIB中心对称（左侧旋转180度是右侧）"
     rib_number: int = 5
     mode: str = "symmetry"
-    matching_rule_names: Tuple[str, ...] = ("rule2",)
+    matching_rule_names: Tuple[str, ...] = (Rule2Config().name,)
     rib_template_list: List[RibTemplate] = [
         RibTemplate(region=RegionEnum.SIDE, operation_template=(RibOperation.NONE,), rib_name="rib1"),
         RibTemplate(region=RegionEnum.CENTER, operation_template=(RibOperation.NONE,), rib_name="rib2"),

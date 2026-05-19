@@ -94,8 +94,20 @@ class Rule3Template(StitchingTemplate):
     description: str = "rule3 test template"
     rib_number: int = 5
     mode: str = "test"
-    matching_rule_names: tuple[str, ...] = ("rule3",)
+    matching_rule_names: tuple[str, ...] = (Rule3Config().name,)
     rib_template_list: list[RibTemplate] = Symmetry0().rib_template_list
+
+
+def test_matching_rule_names_are_derived_from_rule_config_types():
+    """模板匹配规则名应由 RuleConfig 类型推导，避免直接写规则名字符串。"""
+
+    expected_symmetry0_rule_names = (Rule1Config().name,)
+    expected_symmetry1_rule_names = (Rule2Config().name,)
+    expected_rule3_template_names = (Rule3Config().name,)
+
+    assert Symmetry0().matching_rule_names == expected_symmetry0_rule_names
+    assert Symmetry1().matching_rule_names == expected_symmetry1_rule_names
+    assert Rule3Template().matching_rule_names == expected_rule3_template_names
 
 
 def test_filter_templates_filters_symmetry_by_enabled_rules():
