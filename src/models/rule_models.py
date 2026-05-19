@@ -18,6 +18,8 @@ from typing import Optional, List, Dict, Type
 from pydantic import BaseModel, Field
 from .enums import RuleTypeEnum
 
+from src.models.enums import RegionEnum
+
 
 # ============================================================
 # 第一部分：注册机制
@@ -122,7 +124,7 @@ class BaseRuleConfig(BaseModel):
 
     description: str = Field(description="规则描述")
     max_score: Optional[int] = Field(default=None, ge=0, description="最大可得分，None表示非打分规则")
-    rule_type: RuleTypeEnum = Field(description="规则类型枚举")
+    rule_type: Optional[RuleTypeEnum] = Field(default=None, description="规则类型枚举")
     @property
     def name(self) -> str:
         """规则名称，从类名自动提取（如Rule8Config → rule8）"""
@@ -445,6 +447,7 @@ class Rule11Config(BaseRuleConfig):
 class Rule11Feature(BaseRuleFeature):
     """Rule11特征：纵向细沟&纵向钢片数量"""
     num_longitudinal_grooves: int = Field(description="纵向线条数量")
+    region: RegionEnum = Field(description="小图区域：center/side")
 
 
 @register_rule_score
