@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
 from itertools import permutations, product
 from math import perm
 from typing import Sequence
 
+import numpy as np
+from pydantic import BaseModel, ConfigDict
+
 from src.common.exceptions import InputDataError
 from src.models.enums import RibOperation, SourceTypeEnum, StitchingSchemeName
-import numpy as np
 
 from src.models.image_models import (
     ImageLineage,
@@ -44,13 +45,24 @@ from src.utils.logger import get_logger
 logger = get_logger('拼接方案')
 
 
-@dataclass(frozen=True)
-class _CandidateScheme:
+class _CandidateScheme(BaseModel):
     """进入最终 `scheme_rank` 选择前的候选方案。"""
+
+    model_config = ConfigDict(frozen=True)
 
     template: "_TemplateCombination"
     selected_images: tuple[SmallImage, ...]
     total_score: int
+
+    def __init__(self, *args: object, **data: object):
+        field_names = ("template", "selected_images", "total_score")
+        if len(args) > len(field_names):
+            raise TypeError(f"expected at most {len(field_names)} positional arguments")
+        for field_name, value in zip(field_names, args):
+            if field_name in data:
+                raise TypeError(f"got multiple values for argument '{field_name}'")
+            data[field_name] = value
+        super().__init__(**data)
 
     @property
     def log_display(self) -> str:
@@ -84,12 +96,24 @@ class _CandidateScheme:
     def rank(cls, candidates: Sequence["_CandidateScheme"]) -> list["_CandidateScheme"]:
         return sorted(candidates, key=lambda candidate: candidate.sort_key)
 
-@dataclass(frozen=True)
-class _TemplateCombination:
+
+class _TemplateCombination(BaseModel):
     """一个 symmetry 模板与一个 continuity 模板组成的最终模板组合。"""
+
+    model_config = ConfigDict(frozen=True)
 
     symmetry_template: StitchingTemplate
     continuity_template: StitchingTemplate
+
+    def __init__(self, *args: object, **data: object):
+        field_names = ("symmetry_template", "continuity_template")
+        if len(args) > len(field_names):
+            raise TypeError(f"expected at most {len(field_names)} positional arguments")
+        for field_name, value in zip(field_names, args):
+            if field_name in data:
+                raise TypeError(f"got multiple values for argument '{field_name}'")
+            data[field_name] = value
+        super().__init__(**data)
 
     @property
     def rib_number(self) -> int:
