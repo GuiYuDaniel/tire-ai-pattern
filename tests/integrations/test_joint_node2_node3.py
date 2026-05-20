@@ -48,6 +48,9 @@ from src.models.rule_models import (
     Rule100Config,
     Rule101Config,
     Rule102Config,
+    Rule12Config,
+    Rule16Config,
+    Rule17Config,
 )
 from src.nodes.big_image_stitcher import stitch_big_image
 from src.nodes.stitch_scheme_generator import generate_stitch_scheme
@@ -99,7 +102,7 @@ RULES_CONFIG_V1 = [
     ),
 ]
 
-RULES_CONFIG_V2 = [
+RULES_CONFIG_CASE1 = [
     Rule1Config(description="rib无对称", max_score=10),
     Rule100Config(
         description="RIB 节距与尺寸配置",
@@ -131,6 +134,58 @@ RULES_CONFIG_V2 = [
                 decoration_opacity=128,
             )
         ],
+    ),
+]
+
+RULES_CONFIG_CASE2 = [
+    Rule1Config(description="rib无对称", max_score=10),
+    Rule100Config(
+        description="RIB 节距与尺寸配置",
+        rib_number=5,
+        rib_sizes=[
+            RibSizeItem(rib_name="rib1", num_pitchs=5, rib_width=400, rib_height=640),
+            RibSizeItem(rib_name="rib2", num_pitchs=5, rib_width=200, rib_height=640),
+            RibSizeItem(rib_name="rib3", num_pitchs=5, rib_width=200, rib_height=640),
+            RibSizeItem(rib_name="rib4", num_pitchs=5, rib_width=200, rib_height=640),
+            RibSizeItem(rib_name="rib5", num_pitchs=5, rib_width=400, rib_height=640),
+        ],
+    ),
+    Rule101Config(
+        description="主沟尺寸配置",
+        groove_sizes=[
+            GrooveSizeItem(groove_width=20, groove_height=640),
+            GrooveSizeItem(groove_width=20, groove_height=640),
+            GrooveSizeItem(groove_width=20, groove_height=640),
+            GrooveSizeItem(groove_width=20, groove_height=640),
+        ],
+    ),
+    Rule102Config(
+        description="装饰边框尺寸与透明度配置",
+        decorations=[
+            DecorationItem(
+                position="left",
+                decoration_width=300,
+                decoration_height=640,
+                decoration_opacity=128,
+            )
+        ],
+    ),
+    Rule12Config(
+        description="两个RIB间横向钢片及横沟连续性占比",
+        max_score=6,
+        continuity_ratio_upper=0.7,
+        continuity_ratio_lower=0.6,
+        continuity_mode_list=["continuity_0", "continuity_1"],
+    ),
+    Rule16Config(
+        description="中心RIB上的横沟或横向钢片可任意组合连续性",
+        max_score=4,
+        continuity_mode_list=["continuity_0", "continuity_1"],
+    ),
+    Rule17Config(
+        description="边缘RIB上的横沟或横向钢片可任意组合连续性",
+        max_score=6,
+        continuity_mode_list=["continuity_0"],
     ),
 ]
 
@@ -620,8 +675,154 @@ class TestJointNode2Node3:
 
     _collected_cases: list[dict] = []
 
+    def test_joint_node2_produces_expected_lineage(self):
+        """用例 1：反推 test_large_image_stitching.py，验证 Node2 产出 Node3 期望格式。
+
+        从 _build_lineage_with_black_decoration 反推 Node2 输入：
+        - 仅 Rule1（Symmetry0），无 Rule2
+        - rib5 width=400，groove_width=20
+        - 恰好 2 SIDE + 3 CENTER（Symmetry0 所需最少原始图片数）
+        - 所有 score=5，num_pitchs=5
+        """
+        expected_prefix = "data:image/"
+
+        small_images = [
+            make_real_small_image(RegionEnum.SIDE, "rib1.png", 5),
+            make_real_small_image(RegionEnum.CENTER, "rib2.png", 5),
+            make_real_small_image(RegionEnum.CENTER, "rib3.png", 5),
+            make_real_small_image(RegionEnum.CENTER, "rib4.png", 5),
+            make_real_small_image(RegionEnum.SIDE, "rib5.png", 5),
+        ]
+
+        result = run_joint_pipeline(small_images, RULES_CONFIG_CASE1, scheme_rank=14)
+
+        # 1. lineage 结构校验
+        lineage: ImageLineage = result.lineage
+        assert lineage.stitching_scheme.stitching_scheme_abstract.name == \
+            StitchingSchemeName.SYMMETRY_0
+
+        # 2. RIB/主沟/装饰数量
+        ribs = lineage.stitching_scheme.ribs_scheme_implementation
+        assert len(ribs) == 5
+        grooves = lineage.main_groove_scheme.main_groove_implementation
+        assert len(grooves) == 4
+        decs = lineage.decoration_scheme.decoration_implementation
+        assert len(decs) == 1
+
+        # 3. 装饰配置对齐
+        assert decs[0].decoration_width == 300
+        assert decs[0].decoration_height == 640
+        assert decs[0].decoration_opacity == 128
+
+        # 4. before_image 和 after_image
+        self._assert_before_images_filled(lineage)
+        self._assert_after_images_filled(lineage, expected_prefix)
+
+        # 5. 输出尺寸（rib5=400，groove=20）
+        expected_width = 400 + 200 + 200 + 200 + 400 + 20 * 4
+        expected_height = 640
+        expected_channels = 3
+        expected_shape = (expected_height, expected_width, expected_channels)
+        rst = base64_to_ndarray(result.image_base64)
+        assert rst.shape == expected_shape
+
+        # 6. 逐像素对比预期图片（来自 _build_lineage_with_black_decoration 的已知正确输出）
+        expected_image_path = DATASET_DIR / "correct_black_decoration.png"
+        expected_image = cv2.imread(str(expected_image_path))
+        assert expected_image is not None, f"预期图片不存在: {expected_image_path}"
+        np.testing.assert_array_equal(rst, expected_image)
+
+        # 7. 导出结果
+        _export_case_results(
+            "case1_lineage", small_images, RULES_CONFIG_CASE1, 1,
+            result, expected_width, expected_height,
+        )
+        TestJointNode2Node3._collected_cases.append({
+            "case_name": "case1_lineage (格式兼容 - 仅 Rule1 Symmetry0, score=5, pitchs=5)",
+            "expected_width": expected_width,
+            "expected_height": expected_height,
+            "small_images": small_images,
+            "rules_config": RULES_CONFIG_CASE1,
+            "big_image": result,
+        })
+
+    def test_joint_continuity1_operations(self):
+        """用例 2：Symmetry0 + Continuity1 操作管线，验证 RESIZE_H_2X 和 same_as 继承。
+
+        配置同用例 1（RULES_CONFIG_CASE2，相同 small_images），scheme_rank=1 选中 Continuity1。
+        Continuity1 = RIB2-RIB3 连续：rib2 和 rib3 共享同一张 CENTER 图片，
+        rib2 执行 RESIZE_H_2X + LEFT，rib3(2) 执行 RESIZE_H_2X + RIGHT。
+        """
+        expected_prefix = "data:image/"
+
+        small_images = [
+            make_real_small_image(RegionEnum.SIDE, "rib1.png", 5),
+            make_real_small_image(RegionEnum.CENTER, "rib2.png", 5),
+            make_real_small_image(RegionEnum.CENTER, "rib3.png", 5),
+            make_real_small_image(RegionEnum.CENTER, "rib4.png", 5),
+            make_real_small_image(RegionEnum.SIDE, "rib5.png", 5),
+        ]
+
+        result = run_joint_pipeline(small_images, RULES_CONFIG_CASE2, scheme_rank=1)
+
+        lineage: ImageLineage = result.lineage
+        assert lineage.stitching_scheme.stitching_scheme_abstract.name == \
+            StitchingSchemeName.SYMMETRY_0
+
+        ribs = lineage.stitching_scheme.ribs_scheme_implementation
+        assert len(ribs) == 5
+
+        # Continuity1 特有：rib2 和 rib3 共享图片 (same_as)，且操作包含 RESIZE_H_2X
+        rib2 = ribs[1]
+        rib3 = ribs[2]
+        assert "resize_horizontal_2x" in [op.value for op in rib2.rib_operation], \
+            "rib2 应包含 RESIZE_H_2X (Continuity1)"
+        assert rib3.rib_same_as == rib2.rib_name, \
+            "rib3 应继承自 rib2 (Continuity1)"
+        assert "resize_horizontal_2x" in [op.value for op in rib3.rib_operation], \
+            "rib3 应包含 RESIZE_H_2X (Continuity1)"
+        assert rib3.before_image == rib2.before_image, \
+            "rib3 的 before_image 应与 rib2 相同 (共享图片)"
+
+        # 其他 rib 无继承
+        assert ribs[0].rib_same_as is None  # rib1
+        assert ribs[3].rib_same_as is None  # rib4
+        assert ribs[4].rib_same_as is None  # rib5
+
+        # before_image 和 after_image
+        self._assert_before_images_filled(lineage)
+        self._assert_after_images_filled(lineage, expected_prefix)
+
+        # 输出尺寸
+        expected_width = 400 + 200 + 200 + 200 + 400 + 20 * 4
+        expected_height = 640
+        expected_channels = 3
+        expected_shape = (expected_height, expected_width, expected_channels)
+        rst = base64_to_ndarray(result.image_base64)
+        assert rst.shape == expected_shape
+
+        # 逐像素对比预期图片
+        expected_image_path = DATASET_DIR / "correct_continuity1.png"
+        expected_image = cv2.imread(str(expected_image_path))
+        assert expected_image is not None, f"预期图片不存在: {expected_image_path}"
+        np.testing.assert_array_equal(rst, expected_image)
+
+        # 导出结果
+        _export_case_results(
+            "case2_continuity1", small_images, RULES_CONFIG_CASE2, 1,
+            result, expected_width, expected_height,
+        )
+        TestJointNode2Node3._collected_cases.append({
+            "case_name": "case2_continuity1 (Symmetry0 + Continuity1, rank=1)",
+            "expected_width": expected_width,
+            "expected_height": expected_height,
+            "small_images": small_images,
+            "rules_config": RULES_CONFIG_CASE2,
+            "big_image": result,
+        })
+
     def test_joint_smoke_node2_to_node3(self):
-        """用例 1：冒烟测试——Node2 正常输出 → Node3 不出错。
+        """用例 3：冒烟测试——Node2 正常输出 → Node3 不出错。
 
         沿用 test_stitch_scheme_generator.py 的输入构建模式：
         3 SIDE + 4 CENTER，Rule1+Rule2 双模板竞争。
@@ -662,86 +863,15 @@ class TestJointNode2Node3:
 
         # 5. 导出结果
         _export_case_results(
-            "case1_smoke", small_images, RULES_CONFIG_V1, 1,
+            "case3_smoke", small_images, RULES_CONFIG_V1, 1,
             result, expected_width, expected_height,
         )
         TestJointNode2Node3._collected_cases.append({
-            "case_name": "case1_smoke (冒烟测试 - Rule1+Rule2)",
+            "case_name": "case3_smoke (冒烟测试 - Rule1+Rule2)",
             "expected_width": expected_width,
             "expected_height": expected_height,
             "small_images": small_images,
             "rules_config": RULES_CONFIG_V1,
-            "big_image": result,
-        })
-
-    def test_joint_node2_produces_expected_lineage(self):
-        """用例 2：反推 test_large_image_stitching.py，验证 Node2 产出 Node3 期望格式。
-
-        从 _build_lineage_with_black_decoration 反推 Node2 输入：
-        - 仅 Rule1（Symmetry0），无 Rule2
-        - rib5 width=400，groove_width=20
-        - 恰好 2 SIDE + 3 CENTER（Symmetry0 所需最少原始图片数）
-        - 所有 score=5，num_pitchs=5
-        """
-        expected_prefix = "data:image/"
-
-        small_images = [
-            make_real_small_image(RegionEnum.SIDE, "rib1.png", 5),
-            make_real_small_image(RegionEnum.CENTER, "rib2.png", 5),
-            make_real_small_image(RegionEnum.CENTER, "rib3.png", 5),
-            make_real_small_image(RegionEnum.CENTER, "rib4.png", 5),
-            make_real_small_image(RegionEnum.SIDE, "rib5.png", 5),
-        ]
-
-        result = run_joint_pipeline(small_images, RULES_CONFIG_V2, scheme_rank=14)
-
-        # 1. lineage 结构校验
-        lineage: ImageLineage = result.lineage
-        assert lineage.stitching_scheme.stitching_scheme_abstract.name == \
-            StitchingSchemeName.SYMMETRY_0
-
-        # 2. RIB/主沟/装饰数量
-        ribs = lineage.stitching_scheme.ribs_scheme_implementation
-        assert len(ribs) == 5
-        grooves = lineage.main_groove_scheme.main_groove_implementation
-        assert len(grooves) == 4
-        decs = lineage.decoration_scheme.decoration_implementation
-        assert len(decs) == 1
-
-        # 3. 装饰配置对齐
-        assert decs[0].decoration_width == 300
-        assert decs[0].decoration_height == 640
-        assert decs[0].decoration_opacity == 128
-
-        # 4. before_image 和 after_image
-        self._assert_before_images_filled(lineage)
-        self._assert_after_images_filled(lineage, expected_prefix)
-
-        # 5. 输出尺寸（rib5=400，groove=20）
-        expected_width = 400 + 200 + 200 + 200 + 400 + 20 * 4
-        expected_height = 640
-        expected_channels = 3
-        expected_shape = (expected_height, expected_width, expected_channels)
-        rst = base64_to_ndarray(result.image_base64)
-        assert rst.shape == expected_shape
-
-        # 6. 逐像素对比预期图片（来自 _build_lineage_with_black_decoration 的已知正确输出）
-        expected_image_path = DATASET_DIR / "correct_black_decoration.png"
-        expected_image = cv2.imread(str(expected_image_path))
-        assert expected_image is not None, f"预期图片不存在: {expected_image_path}"
-        np.testing.assert_array_equal(rst, expected_image)
-
-        # 7. 导出结果
-        _export_case_results(
-            "case2_lineage", small_images, RULES_CONFIG_V2, 1,
-            result, expected_width, expected_height,
-        )
-        TestJointNode2Node3._collected_cases.append({
-            "case_name": "case2_lineage (格式兼容 - 仅 Rule1 Symmetry0, score=5, pitchs=5)",
-            "expected_width": expected_width,
-            "expected_height": expected_height,
-            "small_images": small_images,
-            "rules_config": RULES_CONFIG_V2,
             "big_image": result,
         })
 
