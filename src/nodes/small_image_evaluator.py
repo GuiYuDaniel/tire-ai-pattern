@@ -58,7 +58,7 @@ def evaluate_small_images(
         ]),
     )
 
-    for index, small_image in enumerate(small_images, start=1):
+    for image_no, small_image in enumerate(small_images, start=1):
         small_image.evaluation = evaluate_image_with_configs(
             small_image,
             configs,
@@ -66,7 +66,7 @@ def evaluate_small_images(
         )
         logger.info(
             "小图[%s] region=%s 得分: [%s]",
-            index,
+            image_no,
             small_image.biz.region,
             _score_log_display(small_image),
         )
