@@ -79,7 +79,7 @@
       }
     },
     {
-      "image_full_path": "tests/datasets/stitching/correct_black_decoration.png",
+      "image_path": "correct_black_decoration.png",
       "left_decoration_px": 300,
       "right_decoration_px": 300,
       "feature": {

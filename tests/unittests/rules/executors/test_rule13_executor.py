@@ -118,10 +118,7 @@ def make_big_image(
 
 
 def make_baseline_big_image(baseline_case: dict) -> BigImage:
-    if "image_full_path" in baseline_case:
-        image_path = Path(baseline_case["image_full_path"])
-    else:
-        image_path = DATASET_ROOT / baseline_case["image_path"]
+    image_path = DATASET_ROOT / baseline_case["image_path"]
     return make_big_image(
         image_base64=load_image_to_base64(image_path),
         meta=make_meta(size=image_path.stat().st_size),
@@ -261,7 +258,7 @@ def test_exec_score_uses_land_ratio_bounds(land_ratio: float, expected_score: in
 @pytest.mark.parametrize(
     "baseline_case",
     load_rule13_baseline_cases(),
-    ids=lambda case: Path(case.get("image_full_path") or case["image_path"]).name,
+    ids=lambda case: Path(case["image_path"]).name,
 )
 def test_exec_feature_and_score_match_real_image_baseline(baseline_case: dict):
     """Real big images should produce the frozen land-sea-ratio feature baseline."""
@@ -423,7 +420,7 @@ def test_exec_feature_debug_vis_matches_golden():
     each side. Asserts that the vis_image pixel content matches the pre-saved golden file,
     proving the visualization reflects the post-crop tread area, not the full image.
     """
-    image_path = Path("tests/datasets/stitching/correct_black_decoration.png")
+    image_path = DATASET_ROOT / "correct_black_decoration.png"
     big_image = make_big_image(
         image_base64=load_image_to_base64(image_path),
         meta=make_meta(size=image_path.stat().st_size),
