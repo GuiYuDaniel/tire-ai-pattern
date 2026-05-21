@@ -120,6 +120,10 @@ def make_baseline_big_image(baseline_case: dict) -> BigImage:
     return make_big_image(
         image_base64=load_image_to_base64(image_path),
         meta=make_meta(size=image_path.stat().st_size),
+        lineage=make_lineage(
+            left_width=baseline_case["left_decoration_px"],
+            right_width=baseline_case["right_decoration_px"],
+        ),
     )
 
 
