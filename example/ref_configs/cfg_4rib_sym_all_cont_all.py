@@ -1,13 +1,12 @@
 """
-参考配置 1.7：4个RIB，无对称，无连续性
-方案: symmetry_4
+参考配置 1：4个RIB，所有对称性 (symmetry_4/5/6) + 所有连续性 (continuity_3)
 RIB数量: 4
-对称性候选: [symmetry_4]
-连续性候选: 无
+对称性候选: [symmetry_4, symmetry_5, symmetry_6]
+连续性候选: [continuity_3]
 """
 
 from pathlib import Path
-from src.models.enums import RegionEnum, DecorationPositionEnum
+from src.models.enums import RegionEnum, StitchingSchemeName, DecorationPositionEnum
 from src.utils.image_utils import load_image_to_base64
 
 CONFIG = {
@@ -22,6 +21,8 @@ CONFIG = {
     ],
     "rules_config": [
         {"rule": "rule1", "description": "rib无对称", "max_score": 10},
+        {"rule": "rule2", "description": "rib中心对称", "max_score": 10},
+        {"rule": "rule3", "description": "rib左右对称", "max_score": 10},
         {"rule": "rule6", "description": "节距纵向关系无缝拼接", "max_score": 10},
         {
             "rule": "rule8",
@@ -43,11 +44,41 @@ CONFIG = {
             "max_count_side": 2,
         },
         {
+            "rule": "rule12",
+            "description": "两个RIB间横向钢片及横沟连续性占比是否满足要求",
+            "max_score": 6,
+            "continuity_ratio_upper": 0.7,
+            "continuity_ratio_lower": 0.6,
+            "continuity_mode_list": [StitchingSchemeName.CONTINUITY_3],
+        },
+        {
+            "rule": "rule16",
+            "description": "中心RIB上的横沟或横向钢片可任意组合连续性",
+            "max_score": 4,
+            "continuity_mode_list": [StitchingSchemeName.CONTINUITY_3],
+        },
+        {
             "rule": "rule13",
             "description": "海陆比28%-35%",
             "max_score": 2,
             "land_ratio_min": 0.28,
             "land_ratio_max": 0.35,
+        },
+        {
+            "rule": "rule20",
+            "description": "文生图",
+            "prompt": "tire tread pattern design",
+            "num_images": 1,
+            "output_width": 512,
+            "output_height": 512,
+        },
+        {
+            "rule": "rule22",
+            "description": "图像分辨率",
+            "target_width": 512,
+            "target_height": 512,
+            "keep_aspect_ratio": True,
+            "output_format": "png",
         },
         {
             "rule": "rule100", "rib_number": 4,
