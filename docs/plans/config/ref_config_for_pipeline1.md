@@ -12,7 +12,7 @@
 | S1 | 新增 `DecorationPositionEnum` | `src/models/enums.py` | — |
 | S2 | 同步 `DecorationItem.position` 类型 | `src/models/rule_models.py` | S1 |
 | S3 | 创建共享 builder `_builder.py` | `src/config/_builder.py` | S2 |
-| S4 | 创建 11 个参考配置文件 | `src/config/ref_*.py` (11个) | S3 |
+| S4 | 创建 11 个参考配置文件 + `__init__.py` + 软链接 | `example/ref_configs/*.py` (11个) + `example/__init__.py` + `tests/datasets/ref_configs` | S3 |
 
 ---
 
@@ -268,7 +268,7 @@ def _base64_payload_size(image_base64: str) -> int:
 每个配置文件都是独立完整的 Python 模块，不含别名、不引用外部共享块。
 CONFIG dict 内每个值都是字面量或完整的函数调用，用户可以直接看懂和修改。
 
-### 5.1: `src/config/ref_5rib_sym0_no_cont.py`
+### 5.1: `example/ref_configs/5rib_sym0_no_cont.py`
 
 ```python
 """
@@ -329,7 +329,7 @@ from src.config._builder import build_tire_struct
 tire_struct = build_tire_struct(CONFIG)
 ```
 
-### 5.2: `src/config/ref_5rib_sym1_no_cont.py`
+### 5.2: `example/ref_configs/5rib_sym1_no_cont.py`
 
 ```python
 """
@@ -390,7 +390,7 @@ from src.config._builder import build_tire_struct
 tire_struct = build_tire_struct(CONFIG)
 ```
 
-### 5.3: `src/config/ref_5rib_sym2_no_cont.py`
+### 5.3: `example/ref_configs/5rib_sym2_no_cont.py`
 
 ```python
 """
@@ -451,7 +451,7 @@ from src.config._builder import build_tire_struct
 tire_struct = build_tire_struct(CONFIG)
 ```
 
-### 5.4: `src/config/ref_5rib_sym0_cont1.py`
+### 5.4: `example/ref_configs/5rib_sym0_cont1.py`
 
 ```python
 """
@@ -532,7 +532,7 @@ from src.config._builder import build_tire_struct
 tire_struct = build_tire_struct(CONFIG)
 ```
 
-### 5.5: `src/config/ref_5rib_sym1_cont1.py`
+### 5.5: `example/ref_configs/5rib_sym1_cont1.py`
 
 ```python
 """
@@ -613,7 +613,7 @@ from src.config._builder import build_tire_struct
 tire_struct = build_tire_struct(CONFIG)
 ```
 
-### 5.6: `src/config/ref_5rib_sym2_cont2.py`
+### 5.6: `example/ref_configs/5rib_sym2_cont2.py`
 
 ```python
 """
@@ -694,7 +694,7 @@ from src.config._builder import build_tire_struct
 tire_struct = build_tire_struct(CONFIG)
 ```
 
-### 5.7: `src/config/ref_4rib_sym4_no_cont.py`
+### 5.7: `example/ref_configs/4rib_sym4_no_cont.py`
 
 ```python
 """
@@ -752,7 +752,7 @@ from src.config._builder import build_tire_struct
 tire_struct = build_tire_struct(CONFIG)
 ```
 
-### 5.8: `src/config/ref_4rib_sym4_sym5_no_cont.py`
+### 5.8: `example/ref_configs/4rib_sym4_sym5_no_cont.py`
 
 ```python
 """
@@ -811,7 +811,7 @@ from src.config._builder import build_tire_struct
 tire_struct = build_tire_struct(CONFIG)
 ```
 
-### 5.9: `src/config/ref_4rib_sym456_no_cont.py`
+### 5.9: `example/ref_configs/4rib_sym456_no_cont.py`
 
 ```python
 """
@@ -871,7 +871,7 @@ from src.config._builder import build_tire_struct
 tire_struct = build_tire_struct(CONFIG)
 ```
 
-### 5.10: `src/config/ref_4rib_sym456_cont3.py`
+### 5.10: `example/ref_configs/4rib_sym456_cont3.py`
 
 ```python
 """
@@ -951,7 +951,7 @@ from src.config._builder import build_tire_struct
 tire_struct = build_tire_struct(CONFIG)
 ```
 
-### 5.11: `src/config/ref_4rib_sym456_cont123_bad.py` (反例)
+### 5.11: `example/ref_configs/4rib_sym456_cont123_bad.py` (反例)
 
 ```python
 """
@@ -1097,17 +1097,17 @@ print('_builder.py loaded successfully')
 ```bash
 # 每个配置文件需验证：导入不报错、tire_struct 可构造
 python -c "
-from src.config.ref_5rib_sym0_no_cont import tire_struct, CONFIG
-assert tire_struct.scheme_rank == 1
-assert len(tire_struct.small_images) == 5
-assert len(tire_struct.rules_config) == 4  # rule1 + 100/101/102
+from example.ref_configs import cfg_5rib_sym0_no_cont
+assert cfg_5rib_sym0_no_cont.tire_struct.scheme_rank == 1
+assert len(cfg_5rib_sym0_no_cont.tire_struct.small_images) == 5
+assert len(cfg_5rib_sym0_no_cont.tire_struct.rules_config) == 4  # rule1 + 100/101/102
 print('1.1 OK')
 "
 
 python -c "
-from src.config.ref_4rib_sym456_no_cont import tire_struct
-assert len(tire_struct.small_images) == 4
-assert len(tire_struct.rules_config) == 6  # rule1+2+3 + 100/101/102
+from example.ref_configs import cfg_4rib_sym456_no_cont
+assert len(cfg_4rib_sym456_no_cont.tire_struct.small_images) == 4
+assert len(cfg_4rib_sym456_no_cont.tire_struct.rules_config) == 6  # rule1+2+3 + 100/101/102
 print('1.9 OK')
 "
 ```
@@ -1116,12 +1116,10 @@ print('1.9 OK')
 
 ```python
 # tests/integrations/test_ref_configs.py（参考示例，不必创建）
-from src.config.ref_5rib_sym0_no_cont import tire_struct
+from example.ref_configs import cfg_5rib_sym0_no_cont
 from src.piplines.pipline1 import run_pipeline1
-from src.rules.executors import load_all_executors
 
-load_all_executors()
-result = run_pipeline1(tire_struct)
+result = run_pipeline1(cfg_5rib_sym0_no_cont.tire_struct)
 assert result.flag is True
 ```
 

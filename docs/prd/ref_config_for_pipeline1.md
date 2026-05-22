@@ -16,7 +16,7 @@
 
 ### 1.2 目标
 
-在 `src/config/` 下提供 **11 个参考配置 Python 模块**，每个模块同时满足两个使用场景：
+在 `example/ref_configs/` 下提供 **11 个参考配置 Python 模块**，每个模块同时满足两个使用场景：
 
 | 场景 | 使用方式 |
 |---|---|
@@ -108,13 +108,15 @@ tire_struct = build_tire_struct(CONFIG)
 
 ```python
 # 方式一：直接用（e2e 测试、快速验证）
-from src.config.ref_5rib_sym0_no_cont import tire_struct
+from example.ref_configs import cfg_5rib_sym0_no_cont
 from src.piplines.pipline1 import run_pipeline1
-run_pipeline1(tire_struct)
+run_pipeline1(cfg_5rib_sym0_no_cont.tire_struct)
 
 # 方式二：先修改再使用（自定义参数）
-from src.config.ref_5rib_sym0_no_cont import CONFIG
+from example.ref_configs import cfg_5rib_sym0_no_cont
 from src.config._builder import build_tire_struct
+
+CONFIG = cfg_5rib_sym0_no_cont.CONFIG
 
 CONFIG["scheme_rank"] = 2                # 换一个方案
 CONFIG["small_images"][0]["image_base64"] = load_image_to_base64(
@@ -267,17 +269,17 @@ def build_tire_struct(config: dict) -> TireStruct:
 
 | # | 文件名 | RIB | 对称规则 | 连续性规则 | 连续模式 | 预期方案 |
 |---|---|---|---|---|---|---|
-| 1.1 | `ref_5rib_sym0_no_cont.py` | 5 | rule1 | — | — | Symmetry0 |
-| 1.2 | `ref_5rib_sym1_no_cont.py` | 5 | rule2 | — | — | Symmetry1 |
-| 1.3 | `ref_5rib_sym2_no_cont.py` | 5 | rule3 | — | — | Symmetry2 |
-| 1.4 | `ref_5rib_sym0_cont1.py` | 5 | rule1 | rule12,16,17 | continuity_1 | Symmetry0 + Continuity1 |
-| 1.5 | `ref_5rib_sym1_cont1.py` | 5 | rule2 | rule12,16,17 | continuity_1 | Symmetry1 + Continuity1 |
-| 1.6 | `ref_5rib_sym2_cont2.py` | 5 | rule3 | rule12,16,17 | continuity_2 | Symmetry2 + Continuity2 |
-| 1.7 | `ref_4rib_sym4_no_cont.py` | 4 | rule1 | — | — | Symmetry4 |
-| 1.8 | `ref_4rib_sym4_sym5_no_cont.py` | 4 | rule1, rule2 | — | — | Symmetry4 或 5 |
-| 1.9 | `ref_4rib_sym456_no_cont.py` | 4 | rule1,2,3 | — | — | Symmetry4/5/6 |
-| 1.10 | `ref_4rib_sym456_cont3.py` | 4 | rule1,2,3 | rule12,16,17 | continuity_3 | Symmetry4/5/6 + Continuity3 |
-| 1.11 | `ref_4rib_sym456_cont123_bad.py` | 4 | rule1,2,3 | rule12,16,17 | continuity_1,2,3 | **反例** |
+| 1.1 | `5rib_sym0_no_cont.py` | 5 | rule1 | — | — | Symmetry0 |
+| 1.2 | `5rib_sym1_no_cont.py` | 5 | rule2 | — | — | Symmetry1 |
+| 1.3 | `5rib_sym2_no_cont.py` | 5 | rule3 | — | — | Symmetry2 |
+| 1.4 | `5rib_sym0_cont1.py` | 5 | rule1 | rule12,16,17 | continuity_1 | Symmetry0 + Continuity1 |
+| 1.5 | `5rib_sym1_cont1.py` | 5 | rule2 | rule12,16,17 | continuity_1 | Symmetry1 + Continuity1 |
+| 1.6 | `5rib_sym2_cont2.py` | 5 | rule3 | rule12,16,17 | continuity_2 | Symmetry2 + Continuity2 |
+| 1.7 | `4rib_sym4_no_cont.py` | 4 | rule1 | — | — | Symmetry4 |
+| 1.8 | `4rib_sym4_sym5_no_cont.py` | 4 | rule1, rule2 | — | — | Symmetry4 或 5 |
+| 1.9 | `4rib_sym456_no_cont.py` | 4 | rule1,2,3 | — | — | Symmetry4/5/6 |
+| 1.10 | `4rib_sym456_cont3.py` | 4 | rule1,2,3 | rule12,16,17 | continuity_3 | Symmetry4/5/6 + Continuity3 |
+| 1.11 | `4rib_sym456_cont123_bad.py` | 4 | rule1,2,3 | rule12,16,17 | continuity_1,2,3 | **反例** |
 
 ### 5.2 统一默认参数
 
@@ -420,7 +422,7 @@ from src.models.enums import DecorationPositionEnum
 
 ### 5.4 反例 1.11 说明
 
-`ref_4rib_sym456_cont123_bad.py` 的 `continuity_mode_list` 包含了 `"continuity_1"` 和 `"continuity_2"`。
+`4rib_sym456_cont123_bad.py` 的 `continuity_mode_list` 包含了 `"continuity_1"` 和 `"continuity_2"`。
 
 - `continuity_1` / `continuity_2` 是 **5-rib 的连续性模板**（`Continuity1` / `Continuity2` 的 `rib_number=5`）
 - 当 `Rule100Config.rib_number=4` 时，这些模板的 rib_number 不匹配，会被系统**静默忽略**
@@ -438,19 +440,27 @@ from src.models.enums import DecorationPositionEnum
 ### 6.1 新增文件
 
 ```
+example/
+├── __init__.py
+└── ref_configs/
+    ├── __init__.py                          # 用 importlib 暴露 cfg_xxx 前缀的模块名
+    ├── 5rib_sym0_no_cont.py                 # 1.1
+    ├── 5rib_sym1_no_cont.py                 # 1.2
+    ├── 5rib_sym2_no_cont.py                 # 1.3
+    ├── 5rib_sym0_cont1.py                   # 1.4
+    ├── 5rib_sym1_cont1.py                   # 1.5
+    ├── 5rib_sym2_cont2.py                   # 1.6
+    ├── 4rib_sym4_no_cont.py                 # 1.7
+    ├── 4rib_sym4_sym5_no_cont.py            # 1.8
+    ├── 4rib_sym456_no_cont.py               # 1.9
+    ├── 4rib_sym456_cont3.py                 # 1.10
+    └── 4rib_sym456_cont123_bad.py           # 1.11 反例
+
 src/config/
-├── _builder.py                              # [新增] 共享 dict→TireStruct 构建器
-├── ref_5rib_sym0_no_cont.py                 # [新增] 1.1
-├── ref_5rib_sym1_no_cont.py                 # [新增] 1.2
-├── ref_5rib_sym2_no_cont.py                 # [新增] 1.3
-├── ref_5rib_sym0_cont1.py                   # [新增] 1.4
-├── ref_5rib_sym1_cont1.py                   # [新增] 1.5
-├── ref_5rib_sym2_cont2.py                   # [新增] 1.6
-├── ref_4rib_sym4_no_cont.py                 # [新增] 1.7
-├── ref_4rib_sym4_sym5_no_cont.py            # [新增] 1.8
-├── ref_4rib_sym456_no_cont.py               # [新增] 1.9
-├── ref_4rib_sym456_cont3.py                 # [新增] 1.10
-└── ref_4rib_sym456_cont123_bad.py           # [新增] 1.11 反例
+└── _builder.py                              # 共享 dict→TireStruct 构建器
+
+tests/datasets/
+└── ref_configs -> ../../example/ref_configs  # 软链接，方便从数据集目录访问
 ```
 
 ### 6.2 修改现有文件
@@ -468,7 +478,7 @@ src/config/
 
 | # | 验收项 | 验证方式 |
 |---|---|---|
-| 1 | 每个配置文件的 `tire_struct` 可成功构造，不抛异常 | 在测试中 `from src.config.xxx import tire_struct` |
+| 1 | 每个配置文件的 `tire_struct` 可成功构造，不抛异常 | 在测试中 `from example.ref_configs import cfg_xxx; cfg_xxx.tire_struct` |
 | 2 | `tire_struct` 可直接传给 `run_pipeline1()` 运行 | 1.1-1.10 通过 pipeline1 完整执行 |
 | 3 | 1.11 不导致 pipeline1 崩溃 | 运行不抛异常，continuity_1/2 被静默忽略 |
 | 4 | 预期方案名与实际 pipeline1 输出一致 | 检查 `tire_struct.big_image.lineage.stitching_scheme.stitching_scheme_abstract.name` |
