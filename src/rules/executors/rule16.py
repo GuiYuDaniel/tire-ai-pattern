@@ -11,7 +11,7 @@ from src.rules.registry import register_rule_executor
 class Rule16Executor(RuleExecutor):
     rule_cls = Rule16Config
 
-    def exec_feature(self, image: BaseImage, config: Rule16Config) -> Rule16Feature:
+    def exec_feature(self, image: BaseImage, config: Rule16Config, is_debug: bool = False) -> Rule16Feature:
         """判断血缘中的 StitchingSchemeName 是否为 CONTINUITY_1/2/3"""
         if not isinstance(image, BigImage) or image.lineage is None:
             return Rule16Feature(is_continuous=False)
