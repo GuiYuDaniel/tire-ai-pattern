@@ -22,6 +22,33 @@ CONFIG = {
     ],
     "rules_config": [
         {"rule": "rule1", "description": "rib无对称", "max_score": 10},
+        {"rule": "rule6", "description": "节距纵向关系无缝拼接", "max_score": 10},
+        {
+            "rule": "rule8",
+            "description": "横沟数量约束",
+            "max_score": 4,
+            "groove_width_center": 25.0,
+            "groove_width_side": 13.0,
+        },
+        {
+            "rule": "rule11",
+            "description": "纵向钢片与细沟数量约束",
+            "max_score": 4,
+            "groove_width": 1,
+            "min_width_offset_px": 1,
+            "edge_margin_ratio": 0.1,
+            "min_segment_length_ratio": 0.5,
+            "max_angle_from_vertical": 10,
+            "max_count_center": 3,
+            "max_count_side": 2,
+        },
+        {
+            "rule": "rule13",
+            "description": "海陆比28%-35%",
+            "max_score": 2,
+            "land_ratio_min": 0.28,
+            "land_ratio_max": 0.35,
+        },
         {
             "rule": "rule100", "rib_number": 4,
             "rib_sizes": [
